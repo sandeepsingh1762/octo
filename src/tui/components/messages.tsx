@@ -68,6 +68,13 @@ export const Messages: React.FC<MessagesProps> = ({ messages }) => {
             </Box>
           );
         }
+        if (m.type === "system") {
+          return (
+            <Box key={i} flexDirection="column">
+              <Text color="magenta">{m.text}</Text>
+            </Box>
+          );
+        }
         return null;
       })}
     </Box>

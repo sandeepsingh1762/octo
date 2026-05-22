@@ -20,6 +20,9 @@ export type MessageItem = {
 } | {
     type: "error";
     text: string;
+} | {
+    type: "system";
+    text: string;
 };
 interface UseAgentReturn {
     messages: MessageItem[];
@@ -29,6 +32,9 @@ interface UseAgentReturn {
     sendMessage: () => void;
     status: string;
     tokenInfo: string;
+    model: string;
+    promptLine: string | null;
+    needsSetup: boolean;
 }
 export declare function useAgent(config: Config): UseAgentReturn;
 export {};

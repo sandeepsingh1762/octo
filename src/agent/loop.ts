@@ -1,11 +1,12 @@
 import type { StreamEvent, Message, ToolCall } from "../ai/types.js";
-import { getProvider, buildProviderConfig } from "../ai/registry.js";
+import { getProvider, buildProviderConfig, initializeKeyManager } from "../ai/registry.js";
 import { getToolSchemas, executeTool } from "../tools/registry.js";
 import type { Config } from "../config/index.js";
 import { maybeCompact } from "../context/compaction.js";
 import { AgentState } from "./state.js";
 export { AgentState } from "./state.js";
 import { isSafeBash } from "../tools/shell.js";
+import { isModelConfigured } from "../config/defaults.js";
 import type { ToolDef } from "../tools/types.js";
 
 export type AgentEvent =
@@ -40,13 +41,28 @@ function checkPermission(tc: ToolCall, config: Config): { permitted: boolean; de
   return { permitted: true };
 }
 
+let keyManagerReady = false;
+
 export async function* runAgent(
   userMessage: string,
   state: AgentState,
   config: Config,
   systemPrompt: string
 ): AsyncGenerator<AgentEvent> {
+  if (!keyManagerReady) {
+    await initializeKeyManager();
+    keyManagerReady = true;
+  }
   try {
+    if (!isModelConfigured(config.model)) {
+      yield {
+        type: "error",
+        message:
+          "No model configured. Run /login then /model <provider/model> (e.g. /model openrouter/free).",
+      };
+      return;
+    }
+
     const msg: Message = { role: "user", content: userMessage };
     state.messages.push(msg);
 
@@ -55,7 +71,7 @@ export async function* runAgent(
       maybeCompact(state.messages, config.model);
 
       const provider = getProvider(config.model);
-      const pConfig = buildProviderConfig(config.model, {
+      const pConfig = await buildProviderConfig(config.model, {
         maxTokens: config.max_tokens,
         temperature: 0.7,
         thinking: config.thinking,

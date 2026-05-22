@@ -15,11 +15,13 @@
     "dev:tui": "tsx src/tui/index.tsx",
     "start": "node dist/cli.js",
     "test": "vitest --run",
+    "test:openrouter": "tsx scripts/test-openrouter.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.97.1",
     "@google/generative-ai": "^0.24.1",
+    "@openrouter/sdk": "^0.12.35",
     "chalk": "^5.4.1",
     "cross-spawn": "^7.0.6",
     "diff": "^7.0.0",
@@ -29,7 +31,7 @@
     "ink-text-input": "^6.0.0",
     "marked": "^15.0.7",
     "openai": "^4.91.0",
-    "react": "^19.0.0",
+    "react": "^18.3.1",
     "strip-ansi": "^7.1.0",
     "terminal-image": "^4.1.0",
     "undici": "^7.8.0",
@@ -41,7 +43,7 @@
     "@types/diff": "^7.0.2",
     "@types/glob": "^8.1.0",
     "@types/node": "^22.14.0",
-    "@types/react": "^19.0.0",
+    "@types/react": "^18.3.12",
     "tsx": "^4.19.3",
     "typescript": "^5.8.3",
     "vitest": "^3.1.1"

@@ -10,6 +10,12 @@ export * from "./interaction.js";
 export * from "./memory-tools.js";
 export * from "./task-tools.js";
 export * from "./regex.js";
+export * from "./task-bucket.js";
+export * from "./codebase.js";
+export * from "./str-replace.js";
+export * from "./browser-automation.js";
+export * from "./web-enhanced.js";
+export * from "./coding-advanced.js";
 
 import { registerFsTools } from "./fs.js";
 import { registerShellTools } from "./shell.js";
@@ -21,6 +27,12 @@ import { registerInteractionTools } from "./interaction.js";
 import { registerMemoryTools } from "./memory-tools.js";
 import { registerTaskTools } from "./task-tools.js";
 import { registerRegexTools } from "./regex.js";
+import { registerTaskBucketTools } from "./task-bucket.js";
+import { registerCodebaseTools } from "./codebase.js";
+import { registerStrReplaceTools } from "./str-replace.js";
+import { registerBrowserAutomationTools } from "./browser-automation.js";
+import { registerWebEnhancedTools } from "./web-enhanced.js";
+import { registerCodingAdvancedTools } from "./coding-advanced.js";
 
 export function registerAllTools() {
   registerFsTools();
@@ -33,4 +45,10 @@ export function registerAllTools() {
   registerMemoryTools();
   registerTaskTools();
   registerRegexTools();
+  registerTaskBucketTools();
+  registerCodebaseTools();
+  registerStrReplaceTools();
+  registerBrowserAutomationTools();
+  registerWebEnhancedTools();
+  registerCodingAdvancedTools();
 }

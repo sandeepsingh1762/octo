@@ -10,5 +10,11 @@ export * from "./interaction.js";
 export * from "./memory-tools.js";
 export * from "./task-tools.js";
 export * from "./regex.js";
+export * from "./task-bucket.js";
+export * from "./codebase.js";
+export * from "./str-replace.js";
+export * from "./browser-automation.js";
+export * from "./web-enhanced.js";
+export * from "./coding-advanced.js";
 export declare function registerAllTools(): void;
 //# sourceMappingURL=index.d.ts.map

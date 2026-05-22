@@ -1,8 +1,9 @@
-import { getProvider, buildProviderConfig } from "../ai/registry.js";
+import { getProvider, buildProviderConfig, initializeKeyManager } from "../ai/registry.js";
 import { getToolSchemas, executeTool } from "../tools/registry.js";
 import { maybeCompact } from "../context/compaction.js";
 export { AgentState } from "./state.js";
 import { isSafeBash } from "../tools/shell.js";
+import { isModelConfigured } from "../config/defaults.js";
 function checkPermission(tc, config) {
     const mode = config.permission_mode;
     if (mode === "accept-all")
@@ -24,15 +25,27 @@ function checkPermission(tc, config) {
     }
     return { permitted: true };
 }
+let keyManagerReady = false;
 export async function* runAgent(userMessage, state, config, systemPrompt) {
+    if (!keyManagerReady) {
+        await initializeKeyManager();
+        keyManagerReady = true;
+    }
     try {
+        if (!isModelConfigured(config.model)) {
+            yield {
+                type: "error",
+                message: "No model configured. Run /login then /model <provider/model> (e.g. /model openrouter/free).",
+            };
+            return;
+        }
         const msg = { role: "user", content: userMessage };
         state.messages.push(msg);
         while (!state.cancelled) {
             state.turn_count++;
             maybeCompact(state.messages, config.model);
             const provider = getProvider(config.model);
-            const pConfig = buildProviderConfig(config.model, {
+            const pConfig = await buildProviderConfig(config.model, {
                 maxTokens: config.max_tokens,
                 temperature: 0.7,
                 thinking: config.thinking,

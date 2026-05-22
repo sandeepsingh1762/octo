@@ -26,6 +26,9 @@ export const Messages = ({ messages }) => {
             if (m.type === "error") {
                 return (_jsx(Box, { flexDirection: "column", children: _jsxs(Text, { color: "red", children: ["Error: ", m.text] }) }, i));
             }
+            if (m.type === "system") {
+                return (_jsx(Box, { flexDirection: "column", children: _jsx(Text, { color: "magenta", children: m.text }) }, i));
+            }
             return null;
         }) }));
 };

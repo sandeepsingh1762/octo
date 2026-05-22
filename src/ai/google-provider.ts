@@ -64,7 +64,10 @@ export class GoogleProvider implements BaseProvider {
 
     const chat = model.startChat({
       history: messagesToGoogle(messages),
-      systemInstruction: system,
+      systemInstruction: {
+        role: "user",
+        parts: [{ text: system }],
+      },
     });
 
     const toolList = tools.length > 0 ? toolsToGoogle(tools) : undefined;

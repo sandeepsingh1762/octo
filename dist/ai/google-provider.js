@@ -46,7 +46,10 @@ export class GoogleProvider {
         const model = genAI.getGenerativeModel({ model: config.model });
         const chat = model.startChat({
             history: messagesToGoogle(messages),
-            systemInstruction: system,
+            systemInstruction: {
+                role: "user",
+                parts: [{ text: system }],
+            },
         });
         const toolList = tools.length > 0 ? toolsToGoogle(tools) : undefined;
         const lastUserContent = messages.length > 0 && messages[messages.length - 1].role === "user"

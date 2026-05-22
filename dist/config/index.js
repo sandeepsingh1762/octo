@@ -1,9 +1,11 @@
 import * as fs from "fs/promises";
 import * as path from "path";
-export const CONFIG_DIR = path.join(process.env.HOME || process.env.USERPROFILE || ".", ".octopus");
+import { OCTOPUS_HOME, DEFAULT_MODEL } from "./defaults.js";
+export const CONFIG_DIR = OCTOPUS_HOME;
 export const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
+export const PROJECT_CONFIG_FILE = ".octopus/config.json";
 const DEFAULTS = {
-    model: "gpt-4o",
+    model: DEFAULT_MODEL,
     max_tokens: 8192,
     permission_mode: "auto",
     verbose: false,
@@ -13,23 +15,80 @@ const DEFAULTS = {
     max_agent_depth: 3,
     max_concurrent_agents: 3,
     custom_base_url: "",
+    // Advanced settings
+    auto_compact: true,
+    auto_compact_threshold: 100000,
+    show_cost: true,
+    show_tokens: true,
+    debug: false,
+    log_level: "info",
+    // Tool settings
+    enabled_tools: [],
+    disabled_tools: [],
+    // Session settings
+    auto_save_session: false,
+    session_history_limit: 100,
 };
+// Load config with project override support
 export async function loadConfig() {
+    let config = { ...DEFAULTS };
+    // Load user config
     try {
         const text = await fs.readFile(CONFIG_FILE, "utf-8");
-        return { ...DEFAULTS, ...JSON.parse(text) };
+        config = { ...config, ...JSON.parse(text) };
     }
     catch {
-        return { ...DEFAULTS };
+        // No user config
     }
-}
-export async function saveConfig(cfg) {
-    await fs.mkdir(CONFIG_DIR, { recursive: true });
-    const data = { ...cfg };
-    for (const k of Object.keys(data)) {
-        if (k.startsWith("_"))
-            delete data[k];
+    // Merge model from settings.json (slash commands persist there)
+    try {
+        const settingsPath = path.join(CONFIG_DIR, "settings.json");
+        const text = await fs.readFile(settingsPath, "utf-8");
+        const settings = JSON.parse(text);
+        if (settings.model)
+            config.model = settings.model;
     }
-    await fs.writeFile(CONFIG_FILE, JSON.stringify(data, null, 2), "utf-8");
+    catch {
+        // No settings file
+    }
+    // Load project config (overrides user config)
+    try {
+        const projectPath = path.join(process.cwd(), PROJECT_CONFIG_FILE);
+        const text = await fs.readFile(projectPath, "utf-8");
+        config = { ...config, ...JSON.parse(text) };
+    }
+    catch {
+        // No project config
+    }
+    if (!config.model && DEFAULT_MODEL)
+        config.model = DEFAULT_MODEL;
+    return config;
 }
+export async function saveConfig(cfg, scope = 'user') {
+    const targetPath = scope === 'project'
+        ? path.join(process.cwd(), PROJECT_CONFIG_FILE)
+        : CONFIG_FILE;
+    await fs.mkdir(path.dirname(targetPath), { recursive: true });
+    // Only save non-default values
+    const data = {};
+    for (const [key, value] of Object.entries(cfg)) {
+        if (key.startsWith("_"))
+            continue;
+        if (value !== DEFAULTS[key]) {
+            data[key] = value;
+        }
+    }
+    await fs.writeFile(targetPath, JSON.stringify(data, null, 2), "utf-8");
+}
+// Get a specific config value
+export function getConfigDefault(key) {
+    return DEFAULTS[key];
+}
+// Get all defaults
+export function getConfigDefaults() {
+    return { ...DEFAULTS };
+}
+// Export settings system
+export * from "./settings.js";
+export * from "./defaults.js";
 //# sourceMappingURL=index.js.map

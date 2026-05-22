@@ -1,96 +1,61 @@
 import { OpenAIProvider } from "./openai-provider.js";
 import { AnthropicProvider } from "./anthropic-provider.js";
 import { GoogleProvider } from "./google-provider.js";
-export const PROVIDERS = {
-    anthropic: {
-        name: "anthropic",
-        type: "anthropic",
-        apiKeyEnv: "ANTHROPIC_API_KEY",
-        contextLimit: 200000,
-        models: ["claude-sonnet-4-6", "claude-opus-4-6", "claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022"],
-        costPerMtok: [3, 15],
-    },
-    openai: {
-        name: "openai",
-        type: "openai",
-        apiKeyEnv: "OPENAI_API_KEY",
-        baseUrl: "https://api.openai.com/v1",
-        contextLimit: 128000,
-        models: ["gpt-4o", "gpt-4o-mini", "o3-mini", "o1", "gpt-4-turbo"],
-        costPerMtok: [2.5, 10],
-    },
-    gemini: {
-        name: "gemini",
-        type: "google",
-        apiKeyEnv: "GEMINI_API_KEY",
-        contextLimit: 1000000,
-        models: ["gemini-2.5-pro-preview-03-25", "gemini-2.0-flash", "gemini-1.5-pro"],
-        costPerMtok: [1.25, 5],
-    },
-    deepseek: {
-        name: "deepseek",
-        type: "openai",
-        apiKeyEnv: "DEEPSEEK_API_KEY",
-        baseUrl: "https://api.deepseek.com/v1",
-        contextLimit: 64000,
-        models: ["deepseek-chat", "deepseek-coder", "deepseek-reasoner"],
-        costPerMtok: [0.27, 1.1],
-    },
-    ollama: {
-        name: "ollama",
-        type: "openai",
-        apiKeyEnv: "",
-        baseUrl: "http://localhost:11434/v1",
-        contextLimit: 128000,
-        models: ["llama3.3", "qwen2.5-coder", "deepseek-r1", "gemma3"],
-    },
-    lmstudio: {
-        name: "lmstudio",
-        type: "openai",
-        apiKeyEnv: "",
-        baseUrl: "http://localhost:1234/v1",
-        contextLimit: 128000,
-        models: [],
-    },
-    custom: {
-        name: "custom",
-        type: "openai",
-        apiKeyEnv: "CUSTOM_API_KEY",
-        contextLimit: 128000,
-        models: [],
-    },
-};
-const PREFIX_MAP = [
-    ["claude-", "anthropic"],
-    ["gpt-", "openai"],
-    ["o1", "openai"],
-    ["o3", "openai"],
-    ["gemini-", "gemini"],
-    ["deepseek-", "deepseek"],
-    ["llama", "ollama"],
-    ["qwen", "ollama"],
-    ["mistral", "ollama"],
-    ["phi", "ollama"],
-];
+import { OpenRouterProvider } from "./openrouter-provider.js";
+import { ENHANCED_PROVIDERS, detectProviderFromModel, getModelConfig, KeyManager, ModelDiscovery, } from "./providers-enhanced.js";
+function buildProviders() {
+    const result = {};
+    for (const [id, config] of Object.entries(ENHANCED_PROVIDERS)) {
+        const providerType = config.type === "anthropic"
+            ? "anthropic"
+            : config.type === "google"
+                ? "google"
+                : id === "openrouter"
+                    ? "openrouter"
+                    : "openai";
+        result[id] = {
+            name: config.name,
+            type: providerType,
+            apiKeyEnv: config.apiKeyEnvVar,
+            baseUrl: config.baseUrl,
+            contextLimit: config.models[0]?.contextWindow ?? 128000,
+            models: config.models.map((m) => m.id),
+            costPerMtok: config.models[0]
+                ? [config.models[0].costPer1kInput * 1000, config.models[0].costPer1kOutput * 1000]
+                : undefined,
+        };
+    }
+    return result;
+}
+export const PROVIDERS = buildProviders();
 export function detectProvider(model) {
-    if (model.includes("/")) {
-        return model.split("/")[0];
+    return detectProviderFromModel(model);
+}
+/** Resolve model id sent to the provider API */
+export function resolveModelId(model, providerId) {
+    const pname = providerId ?? detectProvider(model);
+    if (pname === "openrouter") {
+        if (model.startsWith("openrouter/"))
+            return model;
+        if (model.includes("/") && model.split("/")[0] === "openrouter")
+            return model;
+        if (!model.trim())
+            return "";
+        return model === "free" ? "openrouter/free" : `openrouter/${model}`;
     }
-    const m = model.toLowerCase();
-    for (const [prefix, name] of PREFIX_MAP) {
-        if (m.startsWith(prefix))
-            return name;
-    }
-    return "openai";
+    return model.includes("/") ? model.split("/").slice(1).join("/") : model;
 }
 export function bareModel(model) {
-    return model.includes("/") ? model.split("/").slice(1).join("/") : model;
+    return resolveModelId(model);
 }
 export function getProvider(model) {
     const pname = detectProvider(model);
     const p = PROVIDERS[pname];
     if (!p)
         return new OpenAIProvider();
+    if (pname === "openrouter" || model.startsWith("openrouter/")) {
+        return new OpenRouterProvider();
+    }
     switch (p.type) {
         case "anthropic":
             return new AnthropicProvider();
@@ -100,17 +65,43 @@ export function getProvider(model) {
             return new OpenAIProvider();
     }
 }
-export function buildProviderConfig(model, overrides) {
+export async function buildProviderConfig(model, overrides) {
     const pname = detectProvider(model);
     const p = PROVIDERS[pname];
-    const apiKey = p?.apiKeyEnv ? (process.env[p.apiKeyEnv] ?? "") : "";
-    const baseUrl = p?.baseUrl;
+    const modelConfig = getModelConfig(model);
+    let apiKey = "";
+    const fromStore = await keyManager.getKey(pname);
+    if (fromStore) {
+        apiKey = fromStore;
+    }
+    else if (p?.apiKeyEnv) {
+        apiKey = process.env[p.apiKeyEnv] ?? "";
+    }
     return {
         apiKey,
-        baseUrl,
-        model: bareModel(model),
-        maxTokens: 8192,
+        baseUrl: p?.baseUrl,
+        model: resolveModelId(model, pname),
+        maxTokens: modelConfig?.maxOutputTokens ?? 8192,
         ...overrides,
     };
+}
+export const keyManager = new KeyManager();
+export const modelDiscovery = new ModelDiscovery();
+export async function getAvailableModels(providerId) {
+    const models = await modelDiscovery.fetchModels(providerId);
+    return models.map((m) => m.id);
+}
+export function getAllProvidersList() {
+    return Object.keys(PROVIDERS);
+}
+export async function hasValidKey(providerId) {
+    const key = await keyManager.getKey(providerId);
+    return key !== null;
+}
+export async function setProviderKey(providerId, key) {
+    return keyManager.setKey(providerId, key);
+}
+export async function initializeKeyManager() {
+    await keyManager.initialize();
 }
 //# sourceMappingURL=registry.js.map

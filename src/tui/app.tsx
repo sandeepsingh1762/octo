@@ -5,6 +5,7 @@ import { Messages } from "./components/messages.js";
 import { ChatInput } from "./components/input.js";
 import { StatusBar } from "./components/status-bar.js";
 import type { Config } from "../config/index.js";
+import { PRODUCT_NAME, PRODUCT_VERSION } from "../config/defaults.js";
 
 interface AppProps {
   config: Config;
@@ -13,33 +14,45 @@ interface AppProps {
 
 export const App: React.FC<AppProps> = ({ config, initialPrompt }) => {
   const { exit } = useApp();
-  const { messages, isStreaming, input, setInput, sendMessage, status, tokenInfo } = useAgent(config);
+  const {
+    messages,
+    isStreaming,
+    input,
+    setInput,
+    sendMessage,
+    status,
+    tokenInfo,
+    model,
+    promptLine,
+    needsSetup,
+  } = useAgent(config);
 
   useInput((_, key) => {
-    if (key.escape) {
+    if (key.escape && !promptLine) {
       exit();
     }
   });
 
   useEffect(() => {
-    if (initialPrompt) {
+    if (initialPrompt && !needsSetup) {
       setInput(initialPrompt);
-      // Need a slight delay to ensure render before sending
-      setTimeout(() => {
-        sendMessage();
-      }, 100);
+      const t = setTimeout(() => sendMessage(), 100);
+      return () => clearTimeout(t);
     }
-  }, [initialPrompt]);
+  }, [initialPrompt, needsSetup]);
 
   return (
     <Box flexDirection="column" height="100%">
       <Box flexDirection="column" paddingTop={1} paddingX={1}>
         <Text color="magenta" bold>
-          🐙 OCTOPUS AI Coding Assistant
+          {`🐙 ${PRODUCT_NAME} — AI Coding Assistant`}
         </Text>
         <Text color="gray" dimColor>
-          v0.1.0 — Type your request. Press Enter to send, Esc to exit.
+          {`v${PRODUCT_VERSION} — /help  /login  /model  Esc to exit`}
         </Text>
+        {needsSetup && (
+          <Text color="yellow">Setup: /login then /model &lt;provider/model&gt;</Text>
+        )}
       </Box>
 
       <Box flexDirection="column" flexGrow={1} overflow="hidden">
@@ -47,14 +60,27 @@ export const App: React.FC<AppProps> = ({ config, initialPrompt }) => {
       </Box>
 
       <Box flexDirection="column" flexShrink={0} paddingBottom={1}>
+        {promptLine && (
+          <Box paddingX={1} marginBottom={0}>
+            <Text color="yellow" bold>
+              {promptLine}
+            </Text>
+          </Box>
+        )}
         <ChatInput
           value={input}
           onChange={setInput}
           onSubmit={sendMessage}
           disabled={isStreaming}
-          placeholder={isStreaming ? "Agent is working..." : ""}
+          placeholder={
+            promptLine
+              ? "Type answer and press Enter..."
+              : isStreaming
+                ? "Agent is working..."
+                : "octopus> message or /command"
+          }
         />
-        <StatusBar status={status} model={config.model} tokenInfo={tokenInfo} />
+        <StatusBar status={status} model={model} tokenInfo={tokenInfo} />
       </Box>
     </Box>
   );
