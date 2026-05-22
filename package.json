@@ -1,0 +1,64 @@
+{
+  "name": "octopus-agent",
+  "version": "0.1.0",
+  "description": "OCTOPUS - Fully Autonomous AI Coding Assistant",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "octopus": "./dist/cli.js",
+    "octopus-tui": "./dist/tui/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/cli.ts",
+    "dev:tui": "tsx src/tui/index.tsx",
+    "start": "node dist/cli.js",
+    "test": "vitest --run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.97.1",
+    "@google/generative-ai": "^0.24.1",
+    "chalk": "^5.4.1",
+    "cross-spawn": "^7.0.6",
+    "diff": "^7.0.0",
+    "glob": "^11.0.1",
+    "ink": "^5.2.0",
+    "ink-spinner": "^5.0.0",
+    "ink-text-input": "^6.0.0",
+    "marked": "^15.0.7",
+    "openai": "^4.91.0",
+    "react": "^19.0.0",
+    "strip-ansi": "^7.1.0",
+    "terminal-image": "^4.1.0",
+    "undici": "^7.8.0",
+    "yaml": "^2.7.0",
+    "zustand": "^5.0.3"
+  },
+  "devDependencies": {
+    "@types/cross-spawn": "^6.0.6",
+    "@types/diff": "^7.0.2",
+    "@types/glob": "^8.1.0",
+    "@types/node": "^22.14.0",
+    "@types/react": "^19.0.0",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "coding-assistant",
+    "terminal",
+    "tui",
+    "cli",
+    "llm",
+    "autonomous"
+  ],
+  "author": "OCTOPUS Team",
+  "license": "MIT"
+}

@@ -1,0 +1,1 @@
+{"version":3,"file":"messages.d.ts","sourceRoot":"","sources":["../../../src/tui/components/messages.tsx"],"names":[],"mappings":"AAAA,OAAO,KAAK,MAAM,OAAO,CAAC;AAE1B,OAAO,KAAK,EAAE,WAAW,EAAE,MAAM,uBAAuB,CAAC;AAEzD,UAAU,aAAa;IACrB,QAAQ,EAAE,WAAW,EAAE,CAAC;CACzB;AAOD,eAAO,MAAM,QAAQ,EAAE,KAAK,CAAC,EAAE,CAAC,aAAa,CA6D5C,CAAC"}
